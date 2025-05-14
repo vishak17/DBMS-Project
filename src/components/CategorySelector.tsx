@@ -9,6 +9,7 @@ interface Category {
   icon: string;
   emoji: string;
   color: string;
+  type: 'income' | 'expense';
 }
 
 interface CategorySelectorProps {
@@ -40,6 +41,10 @@ export default function CategorySelector({ onSelect, selectedCategory, type }: C
   useEffect(() => {
     const fetchCategories = async () => {
       try {
+        // First, try to initialize categories if they don't exist
+        await fetch('/api/categories/init', { method: 'POST' });
+        
+        // Then fetch categories
         const res = await fetch(`/api/categories?type=${type}`);
         if (!res.ok) throw new Error('Failed to fetch categories');
         const data = await res.json();

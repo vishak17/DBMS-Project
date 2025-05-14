@@ -19,6 +19,12 @@ const TransactionSchema = new Schema<ITransaction>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+      transform: (v: any) => {
+        if (typeof v === 'string') {
+          return new mongoose.Types.ObjectId(v.padStart(24, '0'));
+        }
+        return v;
+      }
     },
     amount: {
       type: Number,

@@ -11,6 +11,7 @@ interface Category {
   name: string;
   emoji: string;
   color: string;
+  type: 'income' | 'expense';
 }
 
 interface Transaction {
@@ -23,11 +24,6 @@ interface Transaction {
   sender: string;
   receiver: string;
 }
-
-const CATEGORIES = {
-  income: ['Salary', 'Freelance', 'Investments', 'Gifts', 'Other'],
-  expense: ['Food', 'Transportation', 'Housing', 'Utilities', 'Entertainment', 'Healthcare', 'Shopping', 'Other']
-};
 
 export default function TransactionsPage() {
   const { data: session, status } = useSession();
@@ -170,13 +166,15 @@ export default function TransactionsPage() {
                 className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
               >
                 <option value="">All Categories</option>
-                {Object.entries(CATEGORIES).map(([type, categories]) => (
+                {['income', 'expense'].map((type) => (
                   <optgroup key={type} label={type.charAt(0).toUpperCase() + type.slice(1)}>
-                    {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
+                    {categories
+                      .filter(cat => cat.type === type)
+                      .map((category) => (
+                        <option key={category._id} value={category.name}>
+                          {category.emoji} {category.name}
+                        </option>
+                      ))}
                   </optgroup>
                 ))}
               </select>

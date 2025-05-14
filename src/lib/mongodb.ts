@@ -13,7 +13,7 @@ let isConnected = false;
 
 export async function connectDB() {
   if (isConnected) {
-    return;
+    return mongoose.connection;
   }
 
   try {
@@ -30,6 +30,7 @@ export async function connectDB() {
     await mongoose.connect(MONGODB_URI!, options);
     isConnected = true;
     console.log('MongoDB connected successfully');
+    return mongoose.connection;
   } catch (error) {
     console.error('MongoDB connection error:', error);
     isConnected = false; // Reset connection state on error

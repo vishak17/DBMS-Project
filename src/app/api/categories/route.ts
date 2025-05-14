@@ -4,28 +4,33 @@ import { authOptions } from '@/lib/auth';
 import { connectDB } from '@/lib/mongodb';
 import Category from '@/models/Category';
 import Transaction from '@/models/Transaction';
-import { Types } from 'mongoose';
+import mongoose from 'mongoose';
 
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     await connectDB();
+
+    // Convert numeric string ID to ObjectId
+    const userId = new mongoose.Types.ObjectId(session.user.id.padStart(24, '0'));
 
     // Get query parameters
     const { searchParams } = new URL(req.url);
     const type = searchParams.get('type');
 
     // Build query
-    const query: any = { userId: session.user.id };
+    const query: any = { userId };
     
     // Filter by type if provided
     if (type) {
       query.type = type;
     }
+
+    console.log('Fetching categories with query:', query); // Debug log
 
     const categories = await Category.find(query)
       .select('name icon emoji color')
@@ -47,7 +52,7 @@ export async function GET(req: Request) {
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -64,9 +69,12 @@ export async function POST(request: Request) {
     await connectDB();
     console.log('Connected to MongoDB'); // Debug log
 
+    // Convert numeric string ID to ObjectId
+    const userId = new mongoose.Types.ObjectId(session.user.id.padStart(24, '0'));
+
     // Check if category already exists for this user
     const existingCategory = await Category.findOne({
-      userId: session.user.id,
+      userId,
       name: name.trim()
     });
 
@@ -90,7 +98,7 @@ export async function POST(request: Request) {
       emoji,
       icon: 'tag',
       color: randomColor,
-      userId: session.user.id,
+      userId,
       type: type || 'expense'
     };
 
@@ -112,7 +120,7 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -128,9 +136,12 @@ export async function DELETE(request: Request) {
 
     await connectDB();
 
+    // Convert numeric string ID to ObjectId
+    const userId = new mongoose.Types.ObjectId(session.user.id.padStart(24, '0'));
+
     const category = await Category.findOne({
       _id: id,
-      userId: session.user.id
+      userId
     });
 
     if (!category) {
@@ -149,10 +160,10 @@ export async function DELETE(request: Request) {
 
     await category.deleteOne();
     return NextResponse.json({ message: 'Category deleted successfully' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting category:', error);
     return NextResponse.json(
-      { error: 'Failed to delete category' },
+      { error: error.message || 'Failed to delete category' },
       { status: 500 }
     );
   }

@@ -4,6 +4,8 @@ import GoogleProvider from 'next-auth/providers/google';
 import bcrypt from 'bcryptjs';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
+import Account from '@/models/Account';
+import mongoose from 'mongoose';
 
 declare module 'next-auth' {
   interface Session {
@@ -106,5 +108,27 @@ const handler = NextAuth({
     },
   },
 });
+
+// Add account creation after successful signup
+handler.signup = async (user: any) => {
+  try {
+    await connectDB();
+    
+    // Convert numeric string ID to ObjectId
+    const userId = new mongoose.Types.ObjectId(user.id.padStart(24, '0'));
+
+    // Create initial account
+    await Account.create({
+      userId,
+      balance: 0,
+      totalIncome: 0,
+      totalExpenses: 0
+    });
+
+    console.log('Created new account for user:', user.id);
+  } catch (error) {
+    console.error('Error creating account during signup:', error);
+  }
+};
 
 export { handler as GET, handler as POST }; 

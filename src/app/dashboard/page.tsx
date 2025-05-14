@@ -42,12 +42,19 @@ interface Transaction {
   note?: string;
 }
 
+interface Account {
+  balance: number;
+  totalIncome: number;
+  totalExpenses: number;
+}
+
 type TimePeriod = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [account, setAccount] = useState<Account | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [monthlyLimit, setMonthlyLimit] = useState<number | null>(null);
@@ -67,6 +74,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchTransactions();
+    fetchAccount();
     fetchSummaryAndLimit();
   }, []);
 
@@ -84,6 +92,18 @@ export default function DashboardPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAccount = async () => {
+    try {
+      const response = await fetch('/api/accounts');
+      if (!response.ok) throw new Error('Failed to fetch account data');
+      const data = await response.json();
+      setAccount(data);
+    } catch (err: any) {
+      console.error('Error fetching account:', err);
+      setError(err.message);
     }
   };
 
@@ -140,16 +160,6 @@ export default function DashboardPage() {
       day: 'numeric',
     });
   };
-
-  const totalIncome = transactions
-    .filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const totalExpense = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const totalBalance = totalIncome - totalExpense;
 
   const getInitials = (name: string) => {
     return name ? name.charAt(0).toUpperCase() : '?';
@@ -313,7 +323,7 @@ export default function DashboardPage() {
       {/* Mobile Sidebar Toggle */}
       <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-neutral-200 hover:bg-[#2a2a2a] transition-colors duration-200"
+        className="lg:hidden fixed top-20 left-4 z-40 p-2 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-neutral-200 hover:bg-[#2a2a2a] transition-colors duration-200"
       >
         {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
@@ -326,7 +336,7 @@ export default function DashboardPage() {
             animate={{ x: 0 }}
             exit={{ x: -280 }}
             transition={{ duration: 0.2 }}
-            className="fixed top-0 left-0 h-full w-64 bg-[#121212] border-r border-[#2a2a2a] z-40"
+            className="fixed top-16 left-0 h-[calc(100vh-4rem)] w-64 bg-[#121212] border-r border-[#2a2a2a] z-30"
           >
             <div className="flex flex-col h-full">
               <div className="p-6">
@@ -369,8 +379,8 @@ export default function DashboardPage() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className={`lg:ml-64 min-h-screen transition-all duration-200`}>
-        <div className="px-6 lg:px-12 pt-8 max-w-[1440px] mx-auto">
+      <main className={`lg:ml-64 min-h-screen transition-all duration-200 pt-16`}>
+        <div className="px-6 lg:px-12 py-8 max-w-[1440px] mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-6 lg:grid-cols-12 gap-6">
             {/* Welcome Section */}
             <motion.div 
@@ -416,7 +426,7 @@ export default function DashboardPage() {
                 <h2 className="text-lg font-semibold text-white">Total Balance</h2>
                 <div className="flex items-center justify-between">
                   <div className="text-3xl font-bold text-white">
-                    {formatAmount(totalBalance)}
+                    {account ? formatAmount(account.balance) : 'Loading...'}
                   </div>
                   <DollarSign className="w-6 h-6 text-[#5B8DEF]" />
                 </div>
@@ -436,7 +446,7 @@ export default function DashboardPage() {
                 <h2 className="text-lg font-semibold text-white">Total Income</h2>
                 <div className="flex items-center justify-between">
                   <div className="text-3xl font-bold text-white">
-                    {formatAmount(totalIncome)}
+                    {account ? formatAmount(account.totalIncome) : 'Loading...'}
                   </div>
                   <ArrowUpRight className="w-6 h-6 text-green-500" />
                 </div>
@@ -456,7 +466,7 @@ export default function DashboardPage() {
                 <h2 className="text-lg font-semibold text-white">Total Expense</h2>
                 <div className="flex items-center justify-between">
                   <div className="text-3xl font-bold text-white">
-                    {formatAmount(totalExpense)}
+                    {account ? formatAmount(account.totalExpenses) : 'Loading...'}
                   </div>
                   <ArrowDownRight className="w-6 h-6 text-red-500" />
                 </div>

@@ -32,7 +32,17 @@ const categorySchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
+    transform: (v: any) => {
+      if (typeof v === 'string') {
+        return new mongoose.Types.ObjectId(v.padStart(24, '0'));
+      }
+      return v;
+    }
+  },
+  isDefault: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
